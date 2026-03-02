@@ -127,6 +127,7 @@ body {
   height: 100vh;
   object-fit: cover;
   z-index: -1;
+  pointer-events: none;
 }
 
 .hero-overlay {
@@ -209,6 +210,8 @@ body {
   border-radius: 12px;
   box-shadow: 0 5px 20px rgba(0,0,0,0.05);
   transition: 0.3s;
+  position:relative;
+  z-index:5;
 }
 
 .card:hover,
@@ -244,9 +247,74 @@ body {
   font-size: 22px;
   color: #0A66C2;
   transition: 0.3s ease;
+  pointer-events: auto;
+  z-index: 10;
+  position: relative;
 }
 
 .linkedin-icon:hover {
   transform: scale(1.2);
   color: #004182;
+}
+
+.github-icon {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 24px;
+    color: #8B5E3C;
+    transition: 0.3s ease;
+    pointer-events: auto;
+    z-index: 10;
+    position: relative;
+}
+
+.github-icon:hover {
+    color: #D4AF37;
+    transform: scale(1.2);
+}
+
+.social-icons {
+    margin-top: 15px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    gap: 30px;        /* ⭐ MAIN spacing control */
+}
+
+/* icon size */
+.social-icons a {
+    font-size: 26px;
+    color: #8B5E3C;
+    text-decoration: none;
+
+    display: inline-flex;   /* IMPORTANT */
+    align-items: center;
+    justify-content: center;
+
+    transition: 0.3s ease;
+}
+
+.social-icons a:hover {
+    color: #D4AF37;
+    transform: scale(1.2);
+}
+
+.contact-social {
+    margin-top: 20px;
+    display: flex;
+    justify-content: center;
+    gap: 35px;
+}
+
+.contact-social a {
+    font-size: 28px;
+    color: #8B5E3C;
+    transition: 0.3s ease;
+}
+
+.contact-social a:hover {
+    color: #D4AF37;
+    transform: scale(1.2);
 }
