@@ -183,7 +183,7 @@ def get_meaning(payload: ShlokaRequest):
                 text = verse["translations"]["hindi"]["text"]
             else:
                 text = translate(
-                    verse["translations"]["english"]["text"],
+                    verse["translations"]["hindi"]["text"],
                     LANG_CODES[language]
                 )
 

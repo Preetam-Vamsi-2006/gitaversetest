@@ -32,7 +32,56 @@ body {
     font-family: var(--font-title);
     color: var(--parchment-ink);
 }
+/* ===== NAVBAR ===== */
+.navbar {
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 1000;
+  background: transparent;
+  transition: 0.3s ease;
+}
 
+.navbar.scrolled {
+  background: white;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+.nav-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 70px;
+}
+
+.logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  color: #D4AF37;
+  font-weight: 700;
+}
+
+.right-section {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.navbar nav a {
+  text-decoration: none;
+  color: white;
+  font-weight: 500;
+  margin-right: 15px;
+  transition: 0.3s;
+}
+
+.navbar.scrolled nav a {
+  color: #8B5E3C;
+}
+
+.navbar nav a:hover {
+  color: #D4AF37;
+}
 /* 2. Rotating Sudarshana Chakra (Background Layer) */
 .chakra-layer {
     position: absolute;

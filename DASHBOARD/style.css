@@ -98,17 +98,17 @@ body {
   padding: 8px 22px;
   border-radius: 30px;
   border: none;
-  background: linear-gradient(45deg, #00bfff, #1e90ff);
+  background: linear-gradient(45deg, #D4AF37, #D4AF37);
   color: white;
   font-weight: 600;
   cursor: pointer;
   transition: 0.3s ease;
-  box-shadow: 0 0 10px rgba(0,191,255,0.6);
+  box-shadow: 0 0 10px rgba(231, 245, 42, 0.6);
 }
 
 .glow-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 20px rgba(0,191,255,0.9);
+  box-shadow: 0 0 20px rgba(225, 239, 35, 0.9);
 }
 
 /* ===== HERO ===== */
