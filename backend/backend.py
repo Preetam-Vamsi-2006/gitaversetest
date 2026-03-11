@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-
+from gtts import gTTS
 from mtranslate import translate
 import json
 import os
@@ -190,33 +190,69 @@ def get_meaning(payload: ShlokaRequest):
 
         if language == "english":
             text = verse["translations"]["english"]["text"]
+            audio_lang = "en"
         elif language == "hindi":
             text = verse["translations"]["hindi"]["text"]
+            audio_lang = "hi"
         else:
             text = translate(
                 verse["translations"]["english"]["text"],
                 LANG_CODES[language]
             )
+            audio_lang = LANG_CODES[language]
 
-        # ✅ THIS RETURN WAS MISSING
+        audio_url = None
+        try:
+            tts = gTTS(text=text, lang=audio_lang)
+            filename = f"{uuid.uuid4().hex}.mp3"
+            filepath = os.path.join(AUDIO_DIR, filename)
+            tts.save(filepath)
+            audio_url = f"/audio/{filename}"
+        except Exception as e:
+            print(f"TTS Error: {e}")
+
         return {
             "chapter": verse["chapter"],
             "verse": verse["verse"],
             "language": language,
-            "text": text
+            "text": text,
+            "audio_url": audio_url
         }
 
     # Only reached if NO match found
     error_message_en = "I'm sorry, but the requested verse could not be found in our Bhagavad Gita collection. Please verify the verse text or chapter and verse number."
     if language == "english":
         text = error_message_en
+        audio_lang = "en"
     elif language == "hindi":
         text = translate(error_message_en, "hi")
+        audio_lang = "hi"
     else:
         text = translate(error_message_en, LANG_CODES[language])
+        audio_lang = LANG_CODES[language]
+
+    audio_url = None
+    try:
+        tts = gTTS(text=text, lang=audio_lang)
+        filename = f"{uuid.uuid4().hex}.mp3"
+        filepath = os.path.join(AUDIO_DIR, filename)
+        tts.save(filepath)
+        audio_url = f"/audio/{filename}"
+    except Exception as e:
+        print(f"TTS Error: {e}")
+
     return {
         "chapter": None,
         "verse": None,
         "language": language,
-        "text": text
+        "text": text,
+        "audio_url": audio_url
     }
+
+@app.get("/audio/{filename}")
+def get_audio(filename: str):
+    filepath = os.path.join(AUDIO_DIR, filename)
+    if os.path.exists(filepath):
+        from fastapi.responses import FileResponse
+        return FileResponse(filepath)
+    return {"error": "Audio file not found"}
