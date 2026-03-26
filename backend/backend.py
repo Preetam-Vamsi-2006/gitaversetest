@@ -15,6 +15,7 @@ import threading
 import google.generativeai as genai
 from io import BytesIO
 import base64
+import signal
 
 # ---------------- CONFIG ----------------
 
@@ -23,14 +24,11 @@ AUDIO_DIR = "audio"
 AUDIO_EXPIRY_HOURS = 24  # Delete audio files older than 24 hours
 
 # Create audio directory if it doesn't exist (for local development)
-if not os.path.exists(AUDIO_DIR):
-    try:
-        os.makedirs(AUDIO_DIR)
-        print(f"Created {AUDIO_DIR} directory")
-    except Exception as e:
-        print(f"Could not create audio directory: {e}")
-
-# Gemini API Configuration
+try:
+    os.makedirs(AUDIO_DIR, exist_ok=True)
+    print(f"Audio directory ready: {AUDIO_DIR}")
+except Exception as e:
+    print(f"Could not create audio directory: {e}")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
@@ -296,6 +294,20 @@ def normalize(text: str) -> str:
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
+def safe_translate(text: str, lang_code: str, timeout: int = 10) -> str:
+    """Safely translate text with timeout and error handling"""
+    try:
+        print(f"Attempting translation to {lang_code}")
+        result = translate(text, lang_code)
+        if result and result.strip():
+            return result
+        else:
+            print(f"Translation returned empty for {lang_code}")
+            return text
+    except Exception as e:
+        print(f"Translation failed for {lang_code}: {e}")
+        return text
+
 def load_verses():
     verses = []
     for file in os.listdir(DATA_DIR):
@@ -342,28 +354,40 @@ def get_meaning(payload: ShlokaRequest):
             text = verse["translations"]["hindi"]["text"]
             audio_lang = "hi"
         else:
-            text = translate(
-                verse["translations"]["english"]["text"],
-                LANG_CODES[language]
-            )
-            audio_lang = LANG_CODES[language]
+            # Translate from English to target language
+            try:
+                english_text = verse["translations"]["english"]["text"]
+                target_lang_code = LANG_CODES[language]
+                print(f"Translating to {language} ({target_lang_code})")
+                print(f"Text to translate: {english_text[:100]}...")
+                
+                # Use safe translation wrapper
+                text = safe_translate(english_text, target_lang_code)
+                audio_lang = target_lang_code
+                
+            except Exception as e:
+                print(f"Translation error for {language}: {e}")
+                # Fallback to English if translation fails
+                text = verse["translations"]["english"]["text"]
+                audio_lang = "en"
 
         audio_url = None
         try:
-            tts = gTTS(text=text, lang=audio_lang)
-            # Generate audio in memory instead of saving to file
+            print(f"Generating audio for language: {audio_lang}, text length: {len(text)}")
+            tts = gTTS(text=text, lang=audio_lang, slow=False)
+            
+            # Generate audio in memory (no file storage)
             audio_buffer = BytesIO()
             tts.write_to_fp(audio_buffer)
             audio_buffer.seek(0)
             
-            # Convert to base64 for transmission
+            # Convert to base64
             audio_base64 = base64.b64encode(audio_buffer.getvalue()).decode('utf-8')
             audio_url = f"data:audio/mpeg;base64,{audio_base64}"
-            print(f"Audio generated successfully (in-memory)")
+            print(f"Audio generated successfully (base64)")
         except Exception as e:
             print(f"TTS Error: {e}")
-            import traceback
-            traceback.print_exc()
+            audio_url = None
 
         return {
             "chapter": verse["chapter"],
@@ -379,28 +403,41 @@ def get_meaning(payload: ShlokaRequest):
         text = error_message_en
         audio_lang = "en"
     elif language == "hindi":
-        text = translate(error_message_en, "hi")
-        audio_lang = "hi"
+        try:
+            text = safe_translate(error_message_en, "hi")
+            audio_lang = "hi"
+        except Exception as e:
+            print(f"Error translation failed: {e}")
+            text = error_message_en
+            audio_lang = "en"
     else:
-        text = translate(error_message_en, LANG_CODES[language])
-        audio_lang = LANG_CODES[language]
+        try:
+            target_lang_code = LANG_CODES[language]
+            print(f"Translating error message to {language} ({target_lang_code})")
+            text = safe_translate(error_message_en, target_lang_code)
+            audio_lang = target_lang_code
+        except Exception as e:
+            print(f"Error message translation failed for {language}: {e}")
+            text = error_message_en
+            audio_lang = "en"
 
     audio_url = None
     try:
-        tts = gTTS(text=text, lang=audio_lang)
-        # Generate audio in memory instead of saving to file
+        print(f"Generating error audio for language: {audio_lang}")
+        tts = gTTS(text=text, lang=audio_lang, slow=False)
+        
+        # Generate audio in memory (no file storage)
         audio_buffer = BytesIO()
         tts.write_to_fp(audio_buffer)
         audio_buffer.seek(0)
         
-        # Convert to base64 for transmission
+        # Convert to base64
         audio_base64 = base64.b64encode(audio_buffer.getvalue()).decode('utf-8')
         audio_url = f"data:audio/mpeg;base64,{audio_base64}"
-        print(f"Error audio generated successfully (in-memory)")
+        print(f"Error audio generated successfully (base64)")
     except Exception as e:
-        print(f"TTS Error (error case): {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"TTS Error for error message: {e}")
+        audio_url = None
 
     return {
         "chapter": None,
