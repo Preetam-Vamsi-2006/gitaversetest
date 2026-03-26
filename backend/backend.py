@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from gtts import gTTS
 from mtranslate import translate
@@ -13,6 +13,7 @@ import difflib
 from datetime import datetime, timedelta
 import threading
 import google.generativeai as genai
+from io import BytesIO
 
 # ---------------- CONFIG ----------------
 
@@ -20,10 +21,13 @@ DATA_DIR = "BhagavatGitaJsonFiles"
 AUDIO_DIR = "audio"
 AUDIO_EXPIRY_HOURS = 24  # Delete audio files older than 24 hours
 
-# Create audio directory if it doesn't exist
+# Create audio directory if it doesn't exist (for local development)
 if not os.path.exists(AUDIO_DIR):
-    os.makedirs(AUDIO_DIR)
-    print(f"Created {AUDIO_DIR} directory")
+    try:
+        os.makedirs(AUDIO_DIR)
+        print(f"Created {AUDIO_DIR} directory")
+    except Exception as e:
+        print(f"Could not create audio directory: {e}")
 
 # Gemini API Configuration
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
@@ -346,11 +350,16 @@ def get_meaning(payload: ShlokaRequest):
         audio_url = None
         try:
             tts = gTTS(text=text, lang=audio_lang)
-            filename = f"{uuid.uuid4().hex}.mp3"
-            filepath = os.path.join(AUDIO_DIR, filename)
-            tts.save(filepath)
-            audio_url = f"/audio/{filename}"
-            print(f"Audio generated successfully: {audio_url}")
+            # Generate audio in memory instead of saving to file
+            audio_buffer = BytesIO()
+            tts.write_to_fp(audio_buffer)
+            audio_buffer.seek(0)
+            
+            # Convert to base64 for transmission
+            import base64
+            audio_base64 = base64.b64encode(audio_buffer.getvalue()).decode('utf-8')
+            audio_url = f"data:audio/mpeg;base64,{audio_base64}"
+            print(f"Audio generated successfully (in-memory)")
         except Exception as e:
             print(f"TTS Error: {e}")
             import traceback
@@ -379,11 +388,16 @@ def get_meaning(payload: ShlokaRequest):
     audio_url = None
     try:
         tts = gTTS(text=text, lang=audio_lang)
-        filename = f"{uuid.uuid4().hex}.mp3"
-        filepath = os.path.join(AUDIO_DIR, filename)
-        tts.save(filepath)
-        audio_url = f"/audio/{filename}"
-        print(f"Error audio generated successfully: {audio_url}")
+        # Generate audio in memory instead of saving to file
+        audio_buffer = BytesIO()
+        tts.write_to_fp(audio_buffer)
+        audio_buffer.seek(0)
+        
+        # Convert to base64 for transmission
+        import base64
+        audio_base64 = base64.b64encode(audio_buffer.getvalue()).decode('utf-8')
+        audio_url = f"data:audio/mpeg;base64,{audio_base64}"
+        print(f"Error audio generated successfully (in-memory)")
     except Exception as e:
         print(f"TTS Error (error case): {e}")
         import traceback
