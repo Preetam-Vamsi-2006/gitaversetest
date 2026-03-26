@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 import threading
 import google.generativeai as genai
 from io import BytesIO
+import base64
 
 # ---------------- CONFIG ----------------
 
@@ -356,7 +357,6 @@ def get_meaning(payload: ShlokaRequest):
             audio_buffer.seek(0)
             
             # Convert to base64 for transmission
-            import base64
             audio_base64 = base64.b64encode(audio_buffer.getvalue()).decode('utf-8')
             audio_url = f"data:audio/mpeg;base64,{audio_base64}"
             print(f"Audio generated successfully (in-memory)")
@@ -394,7 +394,6 @@ def get_meaning(payload: ShlokaRequest):
         audio_buffer.seek(0)
         
         # Convert to base64 for transmission
-        import base64
         audio_base64 = base64.b64encode(audio_buffer.getvalue()).decode('utf-8')
         audio_url = f"data:audio/mpeg;base64,{audio_base64}"
         print(f"Error audio generated successfully (in-memory)")
