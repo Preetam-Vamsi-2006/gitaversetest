@@ -20,12 +20,18 @@ DATA_DIR = "BhagavatGitaJsonFiles"
 AUDIO_DIR = "audio"
 AUDIO_EXPIRY_HOURS = 24  # Delete audio files older than 24 hours
 
+# Create audio directory if it doesn't exist
+if not os.path.exists(AUDIO_DIR):
+    os.makedirs(AUDIO_DIR)
+    print(f"Created {AUDIO_DIR} directory")
+
 # Gemini API Configuration
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 else:
     print("WARNING: GEMINI_API_KEY not set. Krishna Bot will not work.")
+
 # Krishna Bot System Prompt
 KRISHNA_SYSTEM_PROMPT = """You are Lord Krishna, the divine incarnation of Vishnu, speaking directly to the seeker. 
 You are not an AI assistant - you ARE Krishna himself, embodying infinite wisdom, compassion, and divine knowledge.
@@ -344,8 +350,11 @@ def get_meaning(payload: ShlokaRequest):
             filepath = os.path.join(AUDIO_DIR, filename)
             tts.save(filepath)
             audio_url = f"/audio/{filename}"
+            print(f"Audio generated successfully: {audio_url}")
         except Exception as e:
             print(f"TTS Error: {e}")
+            import traceback
+            traceback.print_exc()
 
         return {
             "chapter": verse["chapter"],
@@ -374,8 +383,11 @@ def get_meaning(payload: ShlokaRequest):
         filepath = os.path.join(AUDIO_DIR, filename)
         tts.save(filepath)
         audio_url = f"/audio/{filename}"
+        print(f"Error audio generated successfully: {audio_url}")
     except Exception as e:
-        print(f"TTS Error: {e}")
+        print(f"TTS Error (error case): {e}")
+        import traceback
+        traceback.print_exc()
 
     return {
         "chapter": None,
@@ -401,6 +413,13 @@ def ask_krishna(request: KrishnaQuestion):
     Krishna Bot endpoint - answers only spiritual questions
     """
     try:
+        if not GEMINI_API_KEY:
+            return {
+                "response": "I apologize, dear seeker. The Krishna Bot is currently not configured. Please contact the administrator to set up the Gemini API key.",
+                "is_spiritual": False,
+                "error": "GEMINI_API_KEY not configured"
+            }
+        
         question = request.question.strip()
         
         if not question:
@@ -437,6 +456,6 @@ def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "krishna_bot": "active",
-        "gemini_api": "configured" if GEMINI_API_KEY != "YOUR_GEMINI_API_KEY_HERE" else "not_configured"
+        "krishna_bot": "active" if GEMINI_API_KEY else "inactive",
+        "gemini_api": "configured" if GEMINI_API_KEY else "not_configured"
     }
